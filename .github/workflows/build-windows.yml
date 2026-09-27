@@ -52,7 +52,8 @@ jobs:
           if ($exeFiles.Count -eq 0) {
             throw "No portable .exe was produced in $releaseDir"
           }
-          Compress-Archive -Path @($exeFiles.FullName) + @($dllFiles.FullName) -DestinationPath $artifact -Force
+          $files = @($exeFiles.FullName) + @($dllFiles.FullName)
+          Compress-Archive -Path $files -DestinationPath $artifact -Force
 
       - name: Upload portable Windows artifact
         uses: actions/upload-artifact@v4
