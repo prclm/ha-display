@@ -47,13 +47,13 @@ jobs:
         run: |
           $releaseDir = "D:\a\ha-display\ha-display\src-tauri\target\release"
           $artifact = "D:\a\ha-display\ha-display\src-tauri\target\release\ha-display-portable.zip"
-          $exeFiles = Get-ChildItem -Path $releaseDir -Filter *.exe
-          $dllFiles = Get-ChildItem -Path $releaseDir -Filter *.dll
-          if ($exeFiles.Count -eq 0) {
-            throw "No portable .exe was produced in $releaseDir"
+          $files = Get-ChildItem -Path $releaseDir -File | Where-Object { $_.FullName -ne $artifact }
+
+          if ($files.Count -eq 0) {
+            throw "No portable release files were produced in $releaseDir"
           }
-          $files = @($exeFiles.FullName) + @($dllFiles.FullName)
-          Compress-Archive -Path $files -DestinationPath $artifact -Force
+
+          Compress-Archive -Path $files.FullName -DestinationPath $artifact -Force
 
       - name: Upload portable Windows artifact
         uses: actions/upload-artifact@v4
