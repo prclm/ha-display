@@ -1,0 +1,50 @@
+name: build-windows
+
+on:
+  push:
+    branches:
+      - main
+      - feature/project-foundation
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup mise
+        uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+
+      - name: Install toolchain versions from mise
+        shell: bash
+        run: mise install
+
+      - name: Cache Cargo build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install dependencies
+        shell: bash
+        run: mise x -- npm ci
+
+      - name: Build Tauri app for Windows
+        shell: bash
+        env:
+          CI: true
+        run: mise x -- npm run tauri build
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ha-display-windows
+          path: src-tauri/target/release
+          if-no-files-found: error
