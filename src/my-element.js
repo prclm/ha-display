@@ -5,6 +5,7 @@ export class HaDisplayApp extends LitElement {
     return {
       dashboardUrl: { type: String },
       ready: { type: Boolean },
+      shouldRedirect: { type: Boolean },
     }
   }
 
@@ -15,46 +16,33 @@ export class HaDisplayApp extends LitElement {
       && window.location.protocol === 'http:'
       && ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
 
-    const defaultUrl = 'http://homeassistant.local:8123'
-    this.dashboardUrl = isTauriRuntime || isLocalHttpPreview
-      ? defaultUrl
-      : 'about:blank'
+    this.dashboardUrl = 'http://homeassistant.local:8123'
     this.ready = false
+    this.shouldRedirect = isTauriRuntime || isLocalHttpPreview
+  }
+
+  connectedCallback() {
+    super.connectedCallback()
+
+    if (this.shouldRedirect) {
+      setTimeout(() => {
+        window.location.assign(this.dashboardUrl)
+      }, 200)
+    }
   }
 
   render() {
-    const isPreviewBlocked = this.dashboardUrl === 'about:blank'
-
     return html`
       <div class="display-shell">
-        ${isPreviewBlocked
-          ? html`
-            <div class="loading-overlay">
-              <div class="loading-card">
-                <div class="spinner"></div>
-                <p>Browser preview blocked by mixed-content policy</p>
-                <small>
-                  The desktop app will open Home Assistant at http://homeassistant.local.
-                  Browser previews are served over HTTPS and cannot load an HTTP iframe.
-                </small>
-              </div>
-            </div>
-          `
-          : html`
-            <iframe
-              src=${this.dashboardUrl}
-              title="Home Assistant Dashboard"
-              @load=${this._onDashboardLoad}
-            ></iframe>
-          `}
-
-        ${!isPreviewBlocked && this.ready ? '' : ''}
+        <div class="loading-overlay">
+          <div class="loading-card">
+            <div class="spinner"></div>
+            <p>${this.shouldRedirect ? 'Opening Home Assistant...' : 'Browser preview blocked by Home Assistant frame policy'}</p>
+            <small>${this.dashboardUrl}</small>
+          </div>
+        </div>
       </div>
     `
-  }
-
-  _onDashboardLoad() {
-    this.ready = true
   }
 
   static get styles() {
