@@ -15,8 +15,16 @@ export class HaDisplayApp extends LitElement {
       && window.location.protocol === 'http:'
       && ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
 
+    const overrideUrl = typeof window !== 'undefined'
+      ? (new URLSearchParams(window.location.search).get('ha')
+        || window.__HA_DISPLAY_URL__
+        || import.meta.env?.VITE_HA_URL
+        || '')
+      : ''
+
+    const defaultUrl = 'http://homeassistant.local'
     this.dashboardUrl = isTauriRuntime || isLocalHttpPreview
-      ? 'http://homeassistant.local'
+      ? (overrideUrl || defaultUrl)
       : 'about:blank'
     this.ready = false
   }
