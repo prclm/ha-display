@@ -11,9 +11,11 @@ export class HaDisplayApp extends LitElement {
   constructor() {
     super()
     const isTauriRuntime = typeof window !== 'undefined' && !!window.__TAURI_INTERNALS__
-    const isSecurePage = typeof window !== 'undefined' && window.isSecureContext
+    const isLocalHttpPreview = typeof window !== 'undefined'
+      && window.location.protocol === 'http:'
+      && ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
 
-    this.dashboardUrl = isTauriRuntime || !isSecurePage
+    this.dashboardUrl = isTauriRuntime || isLocalHttpPreview
       ? 'http://homeassistant.local'
       : 'about:blank'
     this.ready = false
