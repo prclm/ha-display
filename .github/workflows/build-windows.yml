@@ -45,6 +45,7 @@ jobs:
       - name: Package portable Windows build
         shell: pwsh
         run: |
+          # Package the actual generated release files instead of the whole dependency tree.
           $releaseDir = "D:\a\ha-display\ha-display\src-tauri\target\release"
           $artifact = "D:\a\ha-display\ha-display\src-tauri\target\release\ha-display-portable.zip"
           $files = Get-ChildItem -Path $releaseDir -File | Where-Object { $_.FullName -ne $artifact }
