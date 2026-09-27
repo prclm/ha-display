@@ -36,15 +36,27 @@ jobs:
         shell: bash
         run: mise x -- npm ci
 
-      - name: Build Tauri app for Windows
+      - name: Build portable Windows app
         shell: bash
         env:
           CI: true
         run: mise x -- npm run tauri build
 
-      - name: Upload Windows artifacts
+      - name: Package portable Windows build
+        shell: pwsh
+        run: |
+          $releaseDir = "D:\a\ha-display\ha-display\src-tauri\target\release"
+          $artifact = "D:\a\ha-display\ha-display\src-tauri\target\release\ha-display-portable.zip"
+          $exeFiles = Get-ChildItem -Path $releaseDir -Filter *.exe
+          $dllFiles = Get-ChildItem -Path $releaseDir -Filter *.dll
+          if ($exeFiles.Count -eq 0) {
+            throw "No portable .exe was produced in $releaseDir"
+          }
+          Compress-Archive -Path @($exeFiles.FullName) + @($dllFiles.FullName) -DestinationPath $artifact -Force
+
+      - name: Upload portable Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ha-display-windows
-          path: src-tauri/target/release
+          name: ha-display-portable-windows
+          path: src-tauri/target/release/ha-display-portable.zip
           if-no-files-found: error
