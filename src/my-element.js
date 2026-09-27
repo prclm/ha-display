@@ -10,28 +10,42 @@ export class HaDisplayApp extends LitElement {
 
   constructor() {
     super()
-    this.dashboardUrl = 'http://homeassistant.local'
+    const isTauriRuntime = typeof window !== 'undefined' && !!window.__TAURI_INTERNALS__
+    const isSecurePage = typeof window !== 'undefined' && window.isSecureContext
+
+    this.dashboardUrl = isTauriRuntime || !isSecurePage
+      ? 'http://homeassistant.local'
+      : 'about:blank'
     this.ready = false
   }
 
   render() {
+    const isPreviewBlocked = this.dashboardUrl === 'about:blank'
+
     return html`
       <div class="display-shell">
-        <iframe
-          src=${this.dashboardUrl}
-          title="Home Assistant Dashboard"
-          @load=${this._onDashboardLoad}
-        ></iframe>
-
-        ${this.ready ? '' : html`
-          <div class="loading-overlay">
-            <div class="loading-card">
-              <div class="spinner"></div>
-              <p>Connecting to Home Assistant</p>
-              <small>${this.dashboardUrl}</small>
+        ${isPreviewBlocked
+          ? html`
+            <div class="loading-overlay">
+              <div class="loading-card">
+                <div class="spinner"></div>
+                <p>Browser preview blocked by mixed-content policy</p>
+                <small>
+                  The desktop app will open Home Assistant at http://homeassistant.local.
+                  Browser previews are served over HTTPS and cannot load an HTTP iframe.
+                </small>
+              </div>
             </div>
-          </div>
-        `}
+          `
+          : html`
+            <iframe
+              src=${this.dashboardUrl}
+              title="Home Assistant Dashboard"
+              @load=${this._onDashboardLoad}
+            ></iframe>
+          `}
+
+        ${!isPreviewBlocked && this.ready ? '' : ''}
       </div>
     `
   }
