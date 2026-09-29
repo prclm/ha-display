@@ -1,0 +1,73 @@
+name: build-windows
+
+on:
+  push:
+    branches:
+      - main
+      - feature/project-foundation
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup mise
+        uses: jdx/mise-action@v2
+        with:
+          install: true
+          cache: true
+
+      - name: Install toolchain versions from mise
+        shell: bash
+        run: mise install
+
+      - name: Cache Cargo build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install dependencies
+        shell: bash
+        run: mise x -- npm ci
+
+      - name: Build portable Windows app
+        shell: bash
+        env:
+          CI: true
+        run: mise x -- npm run tauri build
+
+      - name: Package portable Windows build
+        shell: pwsh
+        run: |
+          # Package the actual generated release files instead of the whole dependency tree.
+          $releaseDir = "D:\a\ha-display\ha-display\src-tauri\target\release"
+          $artifact = "D:\a\ha-display\ha-display\src-tauri\target\release\ha-display-portable.zip"
+          $files = Get-ChildItem -Path $releaseDir -File | Where-Object { $_.FullName -ne $artifact }
+
+          if ($files.Count -eq 0) {
+            throw "No portable release files were produced in $releaseDir"
+          }
+
+          Compress-Archive -Path $files.FullName -DestinationPath $artifact -Force
+
+      - name: Upload portable Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ha-display-portable-windows
+          path: src-tauri/target/release/ha-display-portable.zip
+          if-no-files-found: error
+
+      - name: Upload Windows installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: ha-display-installer-windows
+          path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
