@@ -122,6 +122,11 @@ fn save_config(path: &PathBuf, config: &DisplayConfig) -> Result<(), std::io::Er
     options.mode(0o600);
   }
   let mut file = options.open(path)?;
+  #[cfg(unix)]
+  {
+    use std::os::unix::fs::PermissionsExt;
+    file.set_permissions(std::fs::Permissions::from_mode(0o600))?;
+  }
   file.write_all(&bytes)?;
   Ok(())
 }
