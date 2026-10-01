@@ -16,7 +16,7 @@ The shared URL is stored by the integration and used by every paired display tha
 
 The app advertises `_ha-display._tcp.local.` and listens on TCP port `8765`. mDNS discovery requires the app and Home Assistant to share a multicast-capable LAN. Routed networks and tailnets may block mDNS; manually routed discovery is not implemented.
 
-The app accepts API traffic only from loopback, private, and link-local addresses. The PIN expires after 15 minutes and is rate limited to five attempts per source address in a five-minute window. A random, device-specific bearer token is issued during pairing and stored in the user's application configuration directory. The dashboard URL and token are written to `display.json`; on Unix-like systems the file is restricted to the current user.
+The app accepts API traffic only from loopback, private, and link-local addresses. The PIN expires after 15 minutes and is rate limited to five attempts per source address in a five-minute window. A random, device-specific bearer token is issued during pairing and stored in the user's application configuration directory. The dashboard URL and token are written to `display.json`; on Unix-like systems the file is restricted to the current user. Removing the integration entry revokes its token; restart the display app to show a new PIN before pairing it again.
 
 The local API currently uses plain HTTP. The PIN and bearer token are therefore visible to an observer able to capture traffic on the local network. Use this only on a trusted network, do not forward port `8765` from the internet, and use firewall rules to restrict inbound access. HTTPS or certificate pinning is not currently provided.
 
