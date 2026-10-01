@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import ipaddress
-import logging
 from urllib.parse import urlsplit
 
 import voluptuous as vol
@@ -18,13 +17,8 @@ from .const import (
     API_PORT,
     CONFIG_UPDATED_SIGNAL,
     DEFAULT_START_URL,
-    DEFAULT_URL_STORE_KEY,
     DOMAIN,
 )
-
-_LOGGER = logging.getLogger(__name__)
-STORAGE_VERSION = 1
-
 
 def _local_base_url(host: str, port: int) -> str | None:
     try:
@@ -42,13 +36,20 @@ def _local_base_url(host: str, port: int) -> str | None:
 
 
 def _valid_dashboard_url(value: str) -> bool:
-    parsed = urlsplit(value.strip())
-    return (
-        parsed.scheme in ("http", "https")
-        and bool(parsed.hostname)
-        and parsed.username is None
-        and parsed.password is None
-    )
+    try:
+        parsed = urlsplit(value.strip())
+        valid = (
+            parsed.scheme in ("http", "https")
+            and bool(parsed.hostname)
+            and parsed.username is None
+            and parsed.password is None
+        )
+        if not valid:
+            return False
+        parsed.port
+    except ValueError:
+        return False
+    return True
 
 
 class HaDisplayConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -63,7 +64,6 @@ class HaDisplayConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if not self._device_id:
             return self.async_abort(reason="invalid_discovery")
         await self.async_set_unique_id(self._device_id)
-        self._abort_if_unique_id_configured()
 
         self._base_url = _local_base_url(discovery_info.host, discovery_info.port)
         if self._base_url is None:
@@ -78,9 +78,29 @@ class HaDisplayConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 info = await response.json()
         except (ClientError, TimeoutError, ValueError):
             return self.async_abort(reason="cannot_connect")
-        if info.get("device_id") != self._device_id:
+        if not isinstance(info, dict) or info.get("device_id") != self._device_id:
             return self.async_abort(reason="invalid_discovery")
         self._display_name = info.get("name", "HA Display")
+        existing_entry = next(
+            (
+                entry
+                for entry in self.hass.config_entries.async_entries(DOMAIN)
+                if entry.unique_id == self._device_id
+            ),
+            None,
+        )
+        if existing_entry is not None:
+            host = urlsplit(self._base_url).hostname
+            port = urlsplit(self._base_url).port or API_PORT
+            if (
+                existing_entry.data.get("host") != host
+                or existing_entry.data.get("port") != port
+            ):
+                self.hass.config_entries.async_update_entry(
+                    existing_entry,
+                    data={**existing_entry.data, "host": host, "port": port},
+                )
+            return self.async_abort(reason="already_configured")
         return await self.async_step_confirm()
 
     async def async_step_confirm(self, user_input=None):
@@ -96,15 +116,20 @@ class HaDisplayConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 ) as response:
                     if response.status == 200:
                         result = await response.json()
-                        return self.async_create_entry(
-                            title=f"{self._display_name} ({self._device_id})",
-                            data={
-                                "device_id": self._device_id,
-                                "host": urlsplit(self._base_url).hostname,
-                                "port": urlsplit(self._base_url).port or API_PORT,
-                                "token": result["token"],
-                            },
-                        )
+                        if not isinstance(result, dict) or not isinstance(
+                            result.get("token"), str
+                        ):
+                            errors["base"] = "cannot_connect"
+                        else:
+                            return self.async_create_entry(
+                                title=f"{self._display_name} ({self._device_id})",
+                                data={
+                                    "device_id": self._device_id,
+                                    "host": urlsplit(self._base_url).hostname,
+                                    "port": urlsplit(self._base_url).port or API_PORT,
+                                    "token": result["token"],
+                                },
+                            )
                     errors["base"] = {
                         401: "invalid_pin",
                         409: "already_paired",
@@ -116,7 +141,13 @@ class HaDisplayConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="confirm",
-            data_schema=vol.Schema({vol.Required("pin"): str}),
+            data_schema=vol.Schema(
+                {
+                    vol.Required("pin"): vol.All(
+                        str, vol.Length(min=8, max=8), vol.Match(r"^\d{8}$")
+                    )
+                }
+            ),
             errors=errors,
         )
 

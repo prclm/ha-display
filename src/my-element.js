@@ -40,7 +40,9 @@ export class HaDisplayApp extends LitElement {
       this.pin = data.pin || ''
       this.status = data.paired
         ? 'Paired with Home Assistant. Waiting for its display settings…'
-        : 'Add this display in Home Assistant and enter the pairing PIN.'
+        : data.pin
+          ? 'Add this display in Home Assistant and enter the pairing PIN.'
+          : 'The pairing PIN expired. Restart HA Display to generate a new PIN.'
 
       if (data.paired && data.dashboard_url) {
         window.location.replace(data.dashboard_url)
