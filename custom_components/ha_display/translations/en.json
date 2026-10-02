@@ -1,0 +1,41 @@
+{
+  "config": {
+    "step": {
+      "confirm": {
+        "title": "Pair HA Display",
+        "description": "Enter the temporary PIN shown on the display.",
+        "data": {
+          "pin": "Pairing PIN"
+        }
+      }
+    },
+    "error": {
+      "invalid_pin": "The PIN is incorrect.",
+      "pin_expired": "The PIN expired. Restart HA Display to generate a new PIN.",
+      "too_many_attempts": "Too many attempts. Wait five minutes before trying again.",
+      "already_paired": "This display is already paired.",
+      "cannot_connect": "Unable to communicate with the display.",
+      "invalid_discovery": "The discovered display information is invalid."
+    },
+    "abort": {
+      "cannot_connect": "Unable to communicate with the display.",
+      "invalid_discovery": "The discovered display information is invalid.",
+      "already_configured": "This display is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Display settings",
+        "description": "The default URL is shared by all displays. Set an optional URL override for this display.",
+        "data": {
+          "default_url": "Shared default dashboard URL",
+          "dashboard_url": "URL override for this display (optional)"
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Enter a valid URL starting with http:// or https://, without credentials."
+    }
+  }
+}
